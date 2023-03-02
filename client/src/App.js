@@ -1,44 +1,51 @@
-import {useEffect} from "react";
+import {useEffect, useState} from "react";
 
 import logo from './logo.svg';
 import './App.css';
+import {accessToken, getCurrentUserProfile, logout} from "./spotify";
+import {catchErrors} from "./utils";
 
 function App() {
-    useEffect(() => {
-        const queryString = window.location.search;
-        const urlParams = new URLSearchParams(queryString);
-        const accessToken = urlParams.get("access_token");
-        const refreshToken = urlParams.get("refresh_token");
+  const [token, setToken] = useState(null);
+  const [profile, setProfile] = useState(null);
 
-        console.log(accessToken);
-        console.log(refreshToken);
+  useEffect(() => {
+    setToken(accessToken);
 
-        if (refreshToken) {
-            fetch(`/refresh_token?refresh_token=${refreshToken}`)
-                .then(data => {
-                    console.log('raw data":');
-                    console.log(data);
-                    return data
-                })
-                .then(res => res.json())
-                .then(data => console.log(data))
-                .catch(error => console.error(error));
-        }
-    }, []);
+    const fetchData = async () => {
+      const {data} = await getCurrentUserProfile();
+      setProfile(data);
+    };
+
+    catchErrors(fetchData());
+  }, []);
 
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="http://localhost:8888/login"
-        >
-         Log in to Spotify
-        </a>
+        {!token ? (
+          <a
+            className="App-link"
+            href="http://localhost:8888/login"
+          >
+            Log in to Spotify
+          </a>
+        ) : (
+          <>
+            <h1>Logged in!</h1>
+            <button onClick={logout}>Log Out</button>
+
+            {profile && (
+              <div>
+                <h1>{profile.display_name}</h1>
+                <p>{profile.followers.total} Followers</p>
+                {profile.images.length && profile.images[0].url && (
+                  <img src={profile.images[0].url} alt="Avatar"/>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </header>
     </div>
   );
